@@ -869,8 +869,23 @@
                     }
                     
                     console.log('🌐 Web-Scraping mit A2V-Nummer:', webSearchNumber);
-                    webProduct = await this.fetchWebData(webSearchNumber);
-                    this.updateProgressMessage(webMsg, 'Web-Daten erfolgreich abgerufen', true);
+                    
+                    // Fallback nach 15 Sekunden für Render-Probleme
+                    const webScrapingPromise = this.fetchWebData(webSearchNumber);
+                    const fallbackTimeout = new Promise((resolve) => {
+                        setTimeout(() => {
+                            console.log('⚠️ Web-Scraping Timeout - verwende Fallback');
+                            resolve(this.createFallbackWebData(excelProduct, `Web-Scraping Timeout - Zeige nur Excel-Daten`));
+                        }, 15000);
+                    });
+                    
+                    webProduct = await Promise.race([webScrapingPromise, fallbackTimeout]);
+                    
+                    if (webProduct.Produkttitel && webProduct.Produkttitel !== 'Nicht gefunden') {
+                        this.updateProgressMessage(webMsg, 'Web-Daten erfolgreich abgerufen', true);
+                    } else {
+                        this.updateProgressMessage(webMsg, 'Web-Daten Fallback verwendet', true);
+                    }
                     
                     // ✨ SOFORT Web-Daten anzeigen für bessere UX
                     this.displayWebDataOnly(webProduct);

@@ -123,8 +123,20 @@ class SiemensProductScraper {
                 return result;
             }
 
-            // Wait for page to load
-            await page.waitForTimeout(1000);
+            // Wait for page to load completely and dynamic content
+            console.log('⏳ Warte auf dynamische Inhalte...');
+            await page.waitForTimeout(3000); // Mehr Zeit für JavaScript
+            
+            // Warte auf Produktdaten in initialData
+            try {
+                await page.waitForFunction(() => {
+                    return window.initialData && 
+                           Object.keys(window.initialData).length > 5; // Mindestens 5 Keys
+                }, { timeout: 15000 });
+                console.log('✅ Dynamische Daten geladen');
+            } catch (e) {
+                console.log('⚠️ Keine dynamischen Daten nach 15s, verwende statische Extraktion');
+            }
 
             // Extract page title
             try {
@@ -209,43 +221,156 @@ class SiemensProductScraper {
 
     async extractTechnicalData(page, result) {
         try {
-            // Look for tables with technical data
-            const tables = await page.$$('table');
+            console.log('🔍 Erweiterte technische Datenextraktion...');
             
-            for (const table of tables) {
-                const rows = await table.$$('tr');
-                
-                for (const row of rows) {
-                    const cells = await row.$$('td, th');
-                    
-                    if (cells.length >= 2) {
-                        const keyElement = cells[0];
-                        const valueElement = cells[1];
-                        
-                        const key = (await keyElement.innerText()).trim().toLowerCase();
-                        const value = (await valueElement.innerText()).trim();
-                        
-                        if (key && value) {
-                            this.mapTechnicalField(key, value, result);
-                        }
-                    }
-                }
-            }
-
-            // Look for product specifications in div elements
-            const specDivs = await page.$$('[class*="spec"], [class*="detail"], [class*="info"]');
-            for (const div of specDivs) {
-                try {
-                    const text = await div.innerText();
-                    this.parseSpecificationText(text, result);
-                } catch (e) {
-                    // Continue if this div fails
-                }
-            }
+            // Warte auf dynamisch geladene Tabellen
+            await page.waitForTimeout(2000);
+            
+            // 1. Tabellen-basierte Extraktion (robuster)
+            await this.extractFromTables(page, result);
+            
+            // 2. Definition List Extraktion (dl/dt/dd)
+            await this.extractFromDefinitionLists(page, result);
+            
+            // 3. Label-Value Pair Extraktion
+            await this.extractFromLabelValuePairs(page, result);
+            
+            // 4. Pattern-basierte Text-Extraktion
+            await this.extractFromPagePatterns(page, result);
 
         } catch (error) {
             console.log('⚠️ Technische Daten Extraktion Fehler:', error.message);
         }
+    }
+    
+    async extractFromTables(page, result) {
+        const tables = await page.$$('table');
+        console.log(`📊 Analysiere ${tables.length} Tabellen...`);
+        
+        for (const table of tables) {
+            const rows = await table.$$('tr');
+            
+            for (const row of rows) {
+                const cells = await row.$$('td, th');
+                
+                if (cells.length >= 2) {
+                    try {
+                        const key = (await cells[0].textContent()).trim().toLowerCase();
+                        const value = (await cells[1].textContent()).trim();
+                        
+                        if (key && value && key.length > 2 && value.length > 0) {
+                            console.log(`📋 Tabelle: "${key}" = "${value}"`);
+                            this.mapTechnicalField(key, value, result);
+                        }
+                    } catch (e) {
+                        // Skip fehlerhafte Zellen
+                    }
+                }
+            }
+        }
+    }
+    
+    async extractFromDefinitionLists(page, result) {
+        try {
+            const dlElements = await page.$$('dl');
+            console.log(`📝 Analysiere ${dlElements.length} Definition Lists...`);
+            
+            for (const dl of dlElements) {
+                const dts = await dl.$$('dt');
+                const dds = await dl.$$('dd');
+                
+                for (let i = 0; i < Math.min(dts.length, dds.length); i++) {
+                    try {
+                        const key = (await dts[i].textContent()).trim().toLowerCase();
+                        const value = (await dds[i].textContent()).trim();
+                        
+                        if (key && value) {
+                            console.log(`📝 DL: "${key}" = "${value}"`);
+                            this.mapTechnicalField(key, value, result);
+                        }
+                    } catch (e) {
+                        // Skip fehlerhafte Elemente
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Definition List Extraktion fehlgeschlagen:', error.message);
+        }
+    }
+    
+    async extractFromLabelValuePairs(page, result) {
+        try {
+            // Verschiedene Label-Value Patterns
+            const patterns = [
+                { label: '.label, .field-label, [class*="label"]', value: '.value, .field-value, [class*="value"]' },
+                { label: '.spec-name, [class*="spec-name"]', value: '.spec-value, [class*="spec-value"]' },
+                { label: 'strong, b, .bold', value: 'span, .text, div' }
+            ];
+            
+            for (const pattern of patterns) {
+                const labels = await page.$$(pattern.label);
+                console.log(`🏷️ Gefunden ${labels.length} Labels für Pattern: ${pattern.label}`);
+                
+                for (const label of labels) {
+                    try {
+                        const key = (await label.textContent()).trim().toLowerCase();
+                        
+                        // Suche nach dem nächsten Value-Element
+                        const valueElement = await label.evaluateHandle(el => el.nextElementSibling);
+                        if (valueElement) {
+                            const value = (await valueElement.textContent()).trim();
+                            
+                            if (key && value && this.isRelevantField(key)) {
+                                console.log(`🏷️ Label-Value: "${key}" = "${value}"`);
+                                this.mapTechnicalField(key, value, result);
+                            }
+                        }
+                    } catch (e) {
+                        // Skip fehlerhafte Label-Value Paare
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Label-Value Extraktion fehlgeschlagen:', error.message);
+        }
+    }
+    
+    async extractFromPagePatterns(page, result) {
+        try {
+            console.log('🔍 Pattern-basierte Textextraktion...');
+            const bodyText = await page.textContent('body');
+            
+            // Regex-Patterns für typische Produktdaten
+            const patterns = [
+                { name: 'abmessung', regex: /(?:abmessung|dimension|größe)[:\s]*([0-9x×,.\s]+(?:mm|cm|m)?)/i },
+                { name: 'gewicht', regex: /(?:gewicht|weight)[:\s]*([0-9.,]+\s*(?:kg|g))/i },
+                { name: 'werkstoff', regex: /(?:werkstoff|material)[:\s]*([a-z0-9\s\-\.]+?)(?:\n|$)/i },
+                { name: 'weitere artikelnummer', regex: /(?:weitere\s+artikelnummer|article\s+number)[:\s]*([a-z0-9\-]+)/i },
+                { name: 'materialklassifizierung', regex: /(?:materialklassifizierung|classification)[:\s]*([^0-9\n]+)/i },
+                { name: 'statistische warennummer', regex: /(?:statistische\s+warennummer|commodity\s+code)[:\s]*([0-9]+)/i }
+            ];
+            
+            for (const pattern of patterns) {
+                const match = bodyText.match(pattern.regex);
+                if (match && match[1]) {
+                    const value = match[1].trim();
+                    console.log(`🎯 Pattern "${pattern.name}": "${value}"`);
+                    this.mapTechnicalField(pattern.name, value, result);
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Pattern-Extraktion fehlgeschlagen:', error.message);
+        }
+    }
+    
+    isRelevantField(key) {
+        const relevantTerms = [
+            'abmessung', 'dimension', 'größe', 'gewicht', 'weight', 'werkstoff', 'material',
+            'artikelnummer', 'article', 'klassifizierung', 'classification', 'warennummer',
+            'commodity', 'weitere', 'additional', 'statistische'
+        ];
+        
+        return relevantTerms.some(term => key.includes(term));
     }
 
     async extractProductDetails(page, result) {
