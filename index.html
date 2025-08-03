@@ -328,6 +328,26 @@
             animation: spin 1s ease-in-out infinite;
         }
 
+        .loading-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            color: #7f8c8d;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ecf0f1;
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -820,6 +840,9 @@
 
                 if (excelProduct) {
                     this.updateProgressMessage(searchMsg, `Produkt gefunden`, true);
+                    
+                    // ✨ SOFORT Excel-Daten anzeigen für bessere UX
+                    this.displayExcelDataOnly(excelProduct, articleNumber);
                 } else {
                     this.updateProgressMessage(searchMsg, `Produkt nicht gefunden`, true);
                     this.showSearchDebugInfo(articleNumber, searchStrategy);
@@ -848,6 +871,9 @@
                     console.log('🌐 Web-Scraping mit A2V-Nummer:', webSearchNumber);
                     webProduct = await this.fetchWebData(webSearchNumber);
                     this.updateProgressMessage(webMsg, 'Web-Daten erfolgreich abgerufen', true);
+                    
+                    // ✨ SOFORT Web-Daten anzeigen für bessere UX
+                    this.displayWebDataOnly(webProduct);
                 } catch (error) {
                     console.error('Web-Scraping Fehler:', error);
                     this.updateProgressMessage(webMsg, 'Web-Daten-Abruf fehlgeschlagen', true);
@@ -860,16 +886,71 @@
                 
                 this.updateProgressMessage(compareMsg, 'Vergleich abgeschlossen', true);
                 
+                // ✨ ERST JETZT Vergleichstabelle anzeigen
+                this.displayComparisonOnly(excelProduct, webProduct);
+                
                 this.addMessage(`
                     ✅ <strong>Vergleich erfolgreich abgeschlossen!</strong><br><br>
-                    Die Ergebnisse werden rechts angezeigt:<br>
-                    • <strong>Links:</strong> Daten aus Ihrer Excel-Tabelle<br>
-                    • <strong>Rechts:</strong> Daten von der Webseite<br>
-                    • <strong>Unten:</strong> Detaillierter Vergleich mit markierten Unterschieden<br><br>
                     💡 <strong>Möchten Sie eine andere Artikelnummer eingeben?</strong>
                 `);
+            }
 
-                this.displayComparison(excelProduct, webProduct, articleNumber);
+            // ✨ Neue Funktionen für interaktive schrittweise Anzeige
+            displayExcelDataOnly(excelProduct, articleNumber) {
+                const resultsContainer = document.getElementById('results-container');
+                if (!resultsContainer) {
+                    const container = document.createElement('div');
+                    container.id = 'results-container';
+                    container.className = 'results-container';
+                    document.querySelector('.chat-container').after(container);
+                }
+                
+                document.getElementById('results-container').innerHTML = `
+                    <div class="results-content">
+                        <div class="results-header">
+                            <h3>📊 Ergebnisse für Artikelnummer: ${articleNumber}</h3>
+                        </div>
+                        
+                        <div class="data-comparison">
+                            <div class="data-column excel-data">
+                                <h4>📋 Excel-Daten (DB)</h4>
+                                <div class="data-content">
+                                    ${this.renderDataTable(excelProduct, 'excel')}
+                                </div>
+                            </div>
+                            
+                            <div class="data-column web-data">
+                                <h4>🌐 Web-Daten (MyMobase)</h4>
+                                <div class="data-content loading-placeholder">
+                                    <div class="loading-spinner"></div>
+                                    <p>Wird geladen...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="comparison-section" style="display: none;">
+                            <h4>⚖️ Detaillierter Vergleich - DB vs. Web</h4>
+                            <div class="comparison-content"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            displayWebDataOnly(webProduct) {
+                const webDataColumn = document.querySelector('.web-data .data-content');
+                if (webDataColumn) {
+                    webDataColumn.innerHTML = this.renderDataTable(webProduct, 'web');
+                }
+            }
+
+            displayComparisonOnly(excelProduct, webProduct) {
+                const comparisonSection = document.querySelector('.comparison-section');
+                const comparisonContent = document.querySelector('.comparison-content');
+                
+                if (comparisonSection && comparisonContent) {
+                    comparisonContent.innerHTML = this.renderComparisonTable(excelProduct, webProduct);
+                    comparisonSection.style.display = 'block';
+                }
             }
 
             fuzzySearchInAllColumns(articleNumber, searchType) {
@@ -1248,10 +1329,8 @@
                         { key: 'length', label: 'Länge', addUnit: true },
                         { key: 'width', label: 'Breite', addUnit: true },
                         { key: 'height', label: 'Höhe', addUnit: true },
-                        { key: 'dimensionUnit', label: 'Einheit für Abmasse' },
-                        { key: 'grossWeight', label: 'Bruttogewicht' },
-                        { key: 'netWeight', label: 'Nettogewicht' },
-                        { key: 'weightUnit', label: 'Einheit für Gewicht' },
+                        { key: 'grossWeight', label: 'Bruttogewicht', addWeightUnit: true },
+                        { key: 'netWeight', label: 'Nettogewicht', addWeightUnit: true },
                         { key: 'manufacturingNote', label: 'Fertigung und Prüfhinweis' },
                         { key: 'material', label: 'Werkstoff' }
                     ];
@@ -1264,6 +1343,12 @@
                             // Füge Einheit für Abmessungen hinzu
                             if (field.addUnit) {
                                 const unit = this.getExcelFieldValue(data, 'dimensionUnit') || 'mm';
+                                displayValue += ` ${unit}`;
+                            }
+                            
+                            // Füge Einheit für Gewicht hinzu
+                            if (field.addWeightUnit) {
+                                const unit = this.getExcelFieldValue(data, 'weightUnit') || 'kg';
                                 displayValue += ` ${unit}`;
                             }
                             
@@ -1384,6 +1469,10 @@
                     if (field.isSpecialDimension) {
                         excelValue = this.combineExcelDimensions(excelData);
                         webValue = webData[field.web] || 'Nicht gefunden';
+                        // Remove "L×B×H: " prefix from web value for cleaner display
+                        if (webValue && webValue.startsWith('L×B×H: ')) {
+                            webValue = webValue.replace('L×B×H: ', '');
+                        }
                     }
                     // Special handling for material classification with intelligent conversion
                     else if (field.isMaterialClassification) {
@@ -1448,8 +1537,19 @@
                 } 
                 // Text-Vergleiche (vereinfacht)
                 else {
-                    const str1 = value1.toString().toLowerCase().trim();
-                    const str2 = value2.toString().toLowerCase().trim();
+                    let str1 = value1.toString().toLowerCase().trim();
+                    let str2 = value2.toString().toLowerCase().trim();
+                    
+                    // Spezielle Normalisierung für Material-Klassifizierung (Leerzeichen entfernen)
+                    if (str1.includes('ohne/n') || str2.includes('ohne/n')) {
+                        str1 = str1.replace(/\s+/g, ''); // Alle Leerzeichen entfernen
+                        str2 = str2.replace(/\s+/g, ''); // Alle Leerzeichen entfernen
+                    }
+                    
+                    // Intelligenter Dimension-Vergleich
+                    if (this.isDimensionField(str1, str2)) {
+                        return this.compareDimensions(str1, str2);
+                    }
                     
                     if (str1 === str2) {
                         return { status: 'match', text: 'Identisch' };
@@ -1457,6 +1557,61 @@
                         return { status: 'differ', text: 'Verschieden' };
                     }
                 }
+            }
+
+            // Prüft ob es sich um Dimension-Felder handelt
+            isDimensionField(str1, str2) {
+                const dimensionIndicators = ['×', 'x', 'mm', 'cm', 'l×b×h', '+', 'durchmesser'];
+                return dimensionIndicators.some(indicator => 
+                    str1.includes(indicator) || str2.includes(indicator)
+                );
+            }
+
+            // Intelligenter Dimension-Vergleich
+            compareDimensions(str1, str2) {
+                console.log(`🔍 Dimension comparison: "${str1}" vs "${str2}"`);
+                
+                // Exact match
+                if (str1 === str2) {
+                    return { status: 'match', text: 'Identisch' };
+                }
+                
+                // Extract all numbers from both strings
+                const nums1 = this.extractDimensionNumbers(str1);
+                const nums2 = this.extractDimensionNumbers(str2);
+                
+                console.log(`📐 Numbers extracted: [${nums1.join(', ')}] vs [${nums2.join(', ')}]`);
+                
+                // If very different number of dimensions, likely different products
+                if (Math.abs(nums1.length - nums2.length) > 2) {
+                    return { status: 'differ', text: 'Verschiedene Produktvarianten' };
+                }
+                
+                // Check for any matching dimensions (tolerance)
+                let matchingDimensions = 0;
+                nums1.forEach(num1 => {
+                    nums2.forEach(num2 => {
+                        const diff = Math.abs(num1 - num2);
+                        const tolerance = Math.max(num1, num2) * 0.05; // 5% tolerance
+                        if (diff <= tolerance) {
+                            matchingDimensions++;
+                        }
+                    });
+                });
+                
+                if (matchingDimensions >= Math.min(nums1.length, nums2.length) / 2) {
+                    return { status: 'match', text: 'Ähnliche Abmessungen' };
+                } else if (matchingDimensions > 0) {
+                    return { status: 'differ', text: 'Teilweise übereinstimmend' };
+                } else {
+                    return { status: 'differ', text: 'Komplett verschiedene Abmessungen' };
+                }
+            }
+
+            // Extrahiert alle Zahlen aus einem Dimension-String
+            extractDimensionNumbers(str) {
+                const matches = str.match(/(\d+(?:[,.]\d+)?)/g);
+                return matches ? matches.map(num => parseFloat(num.replace(',', '.'))) : [];
             }
 
             isNumeric(value) {
@@ -1521,20 +1676,24 @@
                 const width = this.columnMapping.width ? product[this.columnMapping.width] : null;
                 const height = this.columnMapping.height ? product[this.columnMapping.height] : null;
                 
+                // Get unit (default to mm)
+                const unit = this.columnMapping.dimensionUnit ? product[this.columnMapping.dimensionUnit] : null;
+                const displayUnit = unit || 'mm';
+                
                 // Create L×B×H format if all dimensions available
                 if (length && width && height) {
-                    return `${length}×${width}×${height}`;
+                    return `${length}×${width}×${height} ${displayUnit}`;
                 }
                 
                 // Create L×B format if only 2D available
                 if (length && width) {
-                    return `${length}×${width}`;
+                    return `${length}×${width} ${displayUnit}`;
                 }
                 
                 // Return individual values if available
-                if (length) return `L: ${length}`;
-                if (width) return `B: ${width}`;
-                if (height) return `H: ${height}`;
+                if (length) return `L: ${length} ${displayUnit}`;
+                if (width) return `B: ${width} ${displayUnit}`;
+                if (height) return `H: ${height} ${displayUnit}`;
                 
                 return 'Nicht verfügbar';
             }

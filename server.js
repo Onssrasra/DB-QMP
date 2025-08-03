@@ -150,9 +150,13 @@ class SiemensProductScraper {
             console.log('🔄 Starte robuste Table-basierte Extraktion...');
             await this.extractTechnicalData(page, result);
 
-            // SECONDARY METHOD: Extract data from JavaScript initialData object
-            console.log('🔄 Ergänze mit JavaScript initialData...');
-            await this.extractFromInitialData(page, result);
+            // SECONDARY METHOD: Extract data from JavaScript initialData object (NUR wenn Felder fehlen)
+            if (result.Werkstoff === "Nicht gefunden" || result.Materialklassifizierung === "Nicht gefunden" || result['Statistische Warennummer'] === "Nicht gefunden") {
+                console.log('🔄 Ergänze fehlende Felder mit JavaScript initialData...');
+                await this.extractFromInitialData(page, result);
+            } else {
+                console.log('✅ Table-Extraktion vollständig - Skip initialData');
+            }
 
             // TERTIARY METHOD: HTML fallback extraction
             if (result.Werkstoff === "Nicht gefunden" || result.Materialklassifizierung === "Nicht gefunden") {
@@ -350,28 +354,60 @@ class SiemensProductScraper {
     interpretDimensions(text) {
         if (!text) return "Nicht gefunden";
         
+        console.log(`🔍 Dimension Input: "${text}"`);
+        
         const cleanText = text.replace(/\s+/g, '').toLowerCase();
+        
+        // Special handling for complex formats like "BT 3X30X107,3X228"
+        if (cleanText.includes('bt') || cleanText.includes(',')) {
+            // Remove prefixes like "BT" and split by comma
+            let processedText = cleanText.replace(/^[a-z]+/g, ''); // Remove letter prefixes
+            const parts = processedText.split(',');
+            
+            console.log(`🔍 Complex dimension parts: ${JSON.stringify(parts)}`);
+            
+            let dimensionParts = [];
+            parts.forEach(part => {
+                // Extract all dimension patterns from each part
+                const dimensionMatches = part.match(/(\d+(?:[,.]\d+)?)[x×](\d+(?:[,.]\d+)?)[x×]?(\d+(?:[,.]\d+)?)?/g);
+                if (dimensionMatches) {
+                    dimensionMatches.forEach(match => {
+                        const dimensions = match.match(/(\d+(?:[,.]\d+)?)/g);
+                        if (dimensions) {
+                            dimensionParts.push(dimensions.join('×'));
+                        }
+                    });
+                }
+            });
+            
+            if (dimensionParts.length > 0) {
+                const result = `${dimensionParts.join(' + ')} mm`;
+                console.log(`✅ Complex dimensions parsed: "${result}"`);
+                return result;
+            }
+        }
         
         // Check for diameter x height pattern
         if (cleanText.includes('⌀') || cleanText.includes('ø')) {
-            const match = cleanText.match(/[⌀ø]?(\d+)[x×](\d+)/);
+            const match = cleanText.match(/[⌀ø]?(\d+(?:[,.]\d+)?)[x×](\d+(?:[,.]\d+)?)/);
             if (match) {
                 return `Durchmesser×Höhe: ${match[1]}×${match[2]} mm`;
             }
         }
         
-        // Check for L x B x H pattern
-        const lbhMatch = cleanText.match(/(\d+)[x×](\d+)[x×](\d+)/);
+        // Check for L x B x H pattern (support decimals)
+        const lbhMatch = cleanText.match(/(\d+(?:[,.]\d+)?)[x×](\d+(?:[,.]\d+)?)[x×](\d+(?:[,.]\d+)?)/);
         if (lbhMatch) {
-            return `L×B×H: ${lbhMatch[1]}×${lbhMatch[2]}×${lbhMatch[3]} mm`;
+            return `${lbhMatch[1]}×${lbhMatch[2]}×${lbhMatch[3]} mm`;
         }
         
-        // Check for L x B pattern
-        const lbMatch = cleanText.match(/(\d+)[x×](\d+)/);
+        // Check for L x B pattern (support decimals)
+        const lbMatch = cleanText.match(/(\d+(?:[,.]\d+)?)[x×](\d+(?:[,.]\d+)?)/);
         if (lbMatch) {
-            return `L×B: ${lbMatch[1]}×${lbMatch[2]} mm`;
+            return `${lbMatch[1]}×${lbMatch[2]} mm`;
         }
         
+        console.log(`⚠️ No dimension pattern matched for: "${text}"`);
         return text;
     }
 
@@ -449,36 +485,40 @@ class SiemensProductScraper {
                         
                         console.log(`🔍 Mapping spec: "${key}" = "${value}"`);
                         
-                        // Exakte Zuordnung mit verbesserter Reihenfolge
-                        // WICHTIG: Spezifische Felder ZUERST prüfen!
+                        // KRITISCH: NUR fehlende Felder ergänzen, nicht überschreiben!
                         if (key.includes('materialklassifizierung') || key.includes('material classification')) {
-                            result.Materialklassifizierung = value;
-                            console.log(`✅ Materialklassifizierung zugeordnet: ${value}`);
-                            result['Materialklassifizierung Bewertung'] = this.interpretMaterialClassification(value);
+                            if (!result.Materialklassifizierung || result.Materialklassifizierung === "Nicht gefunden") {
+                                result.Materialklassifizierung = value;
+                                console.log(`✅ InitialData Materialklassifizierung ergänzt: ${value}`);
+                            }
                         } else if (key.includes('statistische warennummer') || key.includes('statistical') || key.includes('import')) {
-                            result['Statistische Warennummer'] = value;
-                            console.log(`✅ Statistische Warennummer zugeordnet: ${value}`);
+                            if (!result['Statistische Warennummer'] || result['Statistische Warennummer'] === "Nicht gefunden") {
+                                result['Statistische Warennummer'] = value;
+                                console.log(`✅ InitialData Statistische Warennummer ergänzt: ${value}`);
+                            }
                         } else if (key.includes('weitere artikelnummer') || key.includes('additional material')) {
-                            result['Weitere Artikelnummer'] = value;
-                            console.log(`✅ Weitere Artikelnummer zugeordnet: ${value}`);
+                            if (!result['Weitere Artikelnummer'] || result['Weitere Artikelnummer'] === "Nicht gefunden") {
+                                result['Weitere Artikelnummer'] = value;
+                                console.log(`✅ InitialData Weitere Artikelnummer ergänzt: ${value}`);
+                            }
                         } else if (key.includes('abmessungen') || key.includes('dimension')) {
-                            result.Abmessung = value;
-                            console.log(`✅ Abmessung zugeordnet: ${value}`);
+                            if (!result.Abmessung || result.Abmessung === "Nicht gefunden") {
+                                result.Abmessung = value;
+                                console.log(`✅ InitialData Abmessung ergänzt: ${value}`);
+                            }
                         } else if (key.includes('gewicht') || key.includes('weight')) {
-                            result.Gewicht = value;
-                            console.log(`✅ Gewicht zugeordnet: ${value}`);
-                        } else if (key.includes('werkstoff')) {
-                            // NUR exakte "werkstoff" Übereinstimmung, NICHT material
-                            result.Werkstoff = value;
-                            console.log(`✅ Werkstoff zugeordnet: ${value}`);
-                        } else if (key.includes('ursprungsland') || key.includes('origin')) {
-                            result.Ursprungsland = value;
-                            console.log(`✅ Ursprungsland zugeordnet: ${value}`);
-                        } else if (key.includes('plattformen') || key.includes('platform')) {
-                            result.Plattformen = value;
-                            console.log(`✅ Plattformen zugeordnet: ${value}`);
+                            if (!result.Gewicht || result.Gewicht === "Nicht gefunden") {
+                                result.Gewicht = value;
+                                console.log(`✅ InitialData Gewicht ergänzt: ${value}`);
+                            }
+                        } else if (key.includes('werkstoff') && !key.includes('klassifizierung')) {
+                            // NUR ergänzen wenn Werkstoff fehlt
+                            if (!result.Werkstoff || result.Werkstoff === "Nicht gefunden") {
+                                result.Werkstoff = value;
+                                console.log(`✅ InitialData Werkstoff ergänzt: ${value}`);
+                            }
                         } else {
-                            console.log(`❓ Unbekannter Schlüssel: "${key}" = "${value}"`);
+                            console.log(`🔄 InitialData Skip: "${key}" = "${value}"`);
                         }
                     });
                 }
