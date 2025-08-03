@@ -1239,45 +1239,42 @@
             renderDataTable(data, source) {
                 let html = '';
                 
-               if (source === 'excel') {
-                   // Excel-Daten in der gewünschten Reihenfolge
-                   const excelFields = [
-                       { key: 'siemensMobilityNumber', label: 'Siemens Mobility Materialnummer' },
-                       { key: 'materialDescription', label: 'Material-Kurztext' },
-                       { key: 'manufacturerNumber', label: 'Herstellerartikelnummer' },
-                       { key: 'length', label: 'Länge', addUnit: 'mm' },
-                       { key: 'width', label: 'Breite', addUnit: 'mm' },
-                       { key: 'height', label: 'Höhe', addUnit: 'mm' },
-                       { key: 'grossWeight', label: 'Bruttogewicht', addWeightUnit: true },
-                       { key: 'netWeight', label: 'Nettogewicht', addWeightUnit: true },
-                       { key: 'manufacturingNote', label: 'Fertigung und Prüfhinweis' },
-                       { key: 'material', label: 'Werkstoff' }
-                   ];
-               
-                   excelFields.forEach(field => {
-                       const value = this.getExcelFieldValue(data, field.key);
-                       if (value && value !== '') {
-                           let displayValue = this.formatValue(value);
-                           
-                           // Füge Einheit für Abmessungen hinzu
-                           if (field.addUnit) {
-                               displayValue += ` ${field.addUnit}`;
-                           }
-                           
-                           // Füge Gewichtseinheit hinzu
-                           if (field.addWeightUnit) {
-                               const weightUnit = this.getExcelFieldValue(data, 'weightUnit') || 'KG';
-                               displayValue += ` ${weightUnit}`;
-                           }
-                           
-                           html += `
-                               <div class="data-row">
-                                   <div class="data-label">${field.label}:</div>
-                                   <div class="data-value">${displayValue}</div>
-                               </div>
-                           `;
-                       }
-                   });
+                if (source === 'excel') {
+                    // Excel-Daten in der gewünschten Reihenfolge
+                    const excelFields = [
+                        { key: 'siemensMobilityNumber', label: 'Siemens Mobility Materialnummer' },
+                        { key: 'materialDescription', label: 'Material-Kurztext' },
+                        { key: 'manufacturerNumber', label: 'Herstellerartikelnummer' },
+                        { key: 'length', label: 'Länge', addUnit: true },
+                        { key: 'width', label: 'Breite', addUnit: true },
+                        { key: 'height', label: 'Höhe', addUnit: true },
+                        { key: 'dimensionUnit', label: 'Einheit für Abmasse' },
+                        { key: 'grossWeight', label: 'Bruttogewicht' },
+                        { key: 'netWeight', label: 'Nettogewicht' },
+                        { key: 'weightUnit', label: 'Einheit für Gewicht' },
+                        { key: 'manufacturingNote', label: 'Fertigung und Prüfhinweis' },
+                        { key: 'material', label: 'Werkstoff' }
+                    ];
+
+                    excelFields.forEach(field => {
+                        const value = this.getExcelFieldValue(data, field.key);
+                        if (value && value !== '') {
+                            let displayValue = this.formatValue(value);
+                            
+                            // Füge Einheit für Abmessungen hinzu
+                            if (field.addUnit) {
+                                const unit = this.getExcelFieldValue(data, 'dimensionUnit') || 'mm';
+                                displayValue += ` ${unit}`;
+                            }
+                            
+                            html += `
+                                <div class="data-row">
+                                    <div class="data-label">${field.label}:</div>
+                                    <div class="data-value">${displayValue}</div>
+                                </div>
+                            `;
+                        }
+                    });
 
                 } else {
                     // Web-Daten in der gewünschten Reihenfolge
@@ -1450,27 +1447,16 @@
                     }
                 } 
                 // Text-Vergleiche (vereinfacht)
-                // Text-Vergleiche (vereinfacht)
-               else {
-                   const str1 = value1.toString().toLowerCase().trim();
-                   const str2 = value2.toString().toLowerCase().trim();
-                   
-                   // Special handling for material classification - remove spaces
-                   if (str1.includes('ohne/n') || str2.includes('ohne/n')) {
-                       const normalized1 = str1.replace(/\s+/g, '');
-                       const normalized2 = str2.replace(/\s+/g, '');
-                       
-                       if (normalized1 === normalized2) {
-                           return { status: 'match', text: 'Identisch' };
-                       }
-                   }
-                   
-                   if (str1 === str2) {
-                       return { status: 'match', text: 'Identisch' };
-                   } else {
-                       return { status: 'differ', text: 'Verschieden' };
-                   }
-               }
+                else {
+                    const str1 = value1.toString().toLowerCase().trim();
+                    const str2 = value2.toString().toLowerCase().trim();
+                    
+                    if (str1 === str2) {
+                        return { status: 'match', text: 'Identisch' };
+                    } else {
+                        return { status: 'differ', text: 'Verschieden' };
+                    }
+                }
             }
 
             isNumeric(value) {
@@ -1528,30 +1514,30 @@
             }
 
             // Combine Excel dimensions (L×B×H) into web-like format for comparison
-          combineExcelDimensions(product) {
-                   if (!this.columnMapping) return 'Nicht verfügbar';
-                   
-                   const length = this.columnMapping.length ? product[this.columnMapping.length] : null;
-                   const width = this.columnMapping.width ? product[this.columnMapping.width] : null;
-                   const height = this.columnMapping.height ? product[this.columnMapping.height] : null;
-                   
-                   // Create L×B×H format if all dimensions available
-                   if (length && width && height) {
-                       return `${length}×${width}×${height} mm`;
-                   }
-                   
-                   // Create L×B format if only 2D available
-                   if (length && width) {
-                       return `${length}×${width} mm`;
-                   }
-                   
-                   // Return individual values if available
-                   if (length) return `${length} mm`;
-                   if (width) return `${width} mm`;
-                   if (height) return `${height} mm`;
-                   
-                   return 'Nicht verfügbar';
-               }
+            combineExcelDimensions(product) {
+                if (!this.columnMapping) return 'Nicht verfügbar';
+                
+                const length = this.columnMapping.length ? product[this.columnMapping.length] : null;
+                const width = this.columnMapping.width ? product[this.columnMapping.width] : null;
+                const height = this.columnMapping.height ? product[this.columnMapping.height] : null;
+                
+                // Create L×B×H format if all dimensions available
+                if (length && width && height) {
+                    return `${length}×${width}×${height}`;
+                }
+                
+                // Create L×B format if only 2D available
+                if (length && width) {
+                    return `${length}×${width}`;
+                }
+                
+                // Return individual values if available
+                if (length) return `L: ${length}`;
+                if (width) return `B: ${width}`;
+                if (height) return `H: ${height}`;
+                
+                return 'Nicht verfügbar';
+            }
 
             // Convert web material classification to Excel format
             convertMaterialClassification(webClassification) {
