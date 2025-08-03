@@ -351,29 +351,35 @@ class SiemensProductScraper {
         }
     }
 
-    interpretDimensions(text) {
+        interpretDimensions(text) {
         if (!text) return "Nicht gefunden";
         
         const cleanText = text.replace(/\s+/g, '').toLowerCase();
+        
+        // Extract pure dimensions without L×B×H prefix
+        const lbhMatch = text.match(/L×B×H:\s*(\d+×\d+×\d+)/i);
+        if (lbhMatch) {
+            return `${lbhMatch[1]} mm`;
+        }
         
         // Check for diameter x height pattern
         if (cleanText.includes('⌀') || cleanText.includes('ø')) {
             const match = cleanText.match(/[⌀ø]?(\d+)[x×](\d+)/);
             if (match) {
-                return `Durchmesser×Höhe: ${match[1]}×${match[2]} mm`;
+                return `${match[1]}×${match[2]} mm`;
             }
         }
         
         // Check for L x B x H pattern
-        const lbhMatch = cleanText.match(/(\d+)[x×](\d+)[x×](\d+)/);
-        if (lbhMatch) {
-            return `L×B×H: ${lbhMatch[1]}×${lbhMatch[2]}×${lbhMatch[3]} mm`;
+        const lbhMatch2 = cleanText.match(/(\d+)[x×](\d+)[x×](\d+)/);
+        if (lbhMatch2) {
+            return `${lbhMatch2[1]}×${lbhMatch2[2]}×${lbhMatch2[3]} mm`;
         }
         
         // Check for L x B pattern
         const lbMatch = cleanText.match(/(\d+)[x×](\d+)/);
         if (lbMatch) {
-            return `L×B: ${lbMatch[1]}×${lbMatch[2]} mm`;
+            return `${lbMatch[1]}×${lbMatch[2]} mm`;
         }
         
         return text;
@@ -766,5 +772,6 @@ app.listen(PORT, () => {
 💡 Zum Stoppen: Ctrl+C drücken
     `);
 });
+
 
 module.exports = app;
