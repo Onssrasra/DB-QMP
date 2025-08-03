@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB Produktdaten Vergleichstool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            height: calc(100vh - 200px);
+        }
+
+        .chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #ecf0f1;
+        }
+
+        .chat-header {
+            background: #3498db;
+            color: white;
+            padding: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.bot {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            margin-right: auto;
+        }
+
+        .message.user {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+            margin-left: auto;
+        }
+
+        .message.system {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            margin: 0 auto;
+            text-align: center;
+            font-style: italic;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-section {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .file-upload {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            background: #f8f9fa;
+            border-color: #2980b9;
+        }
+
+        .file-upload.has-file {
+            border-color: #27ae60;
+            background: #d5f4e6;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #3498db;
+        }
+
+        .send-btn {
+            padding: 15px 25px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+
+        .send-btn:hover {
+            background: #2980b9;
+        }
+
+        .send-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+        }
+
+        .results-header {
+            background: #27ae60;
+            color: white;
+            padding: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .results-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .table-header {
+            padding: 15px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .excel-data .table-header {
+            background: #e74c3c;
+        }
+
+        .web-data .table-header {
+            background: #9b59b6;
+        }
+
+        .table-content {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            font-weight: bold;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .data-value {
+            flex: 1;
+            text-align: right;
+        }
+
+        .product-link {
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            display: inline-block;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .product-link:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table .table-header {
+            background: #f39c12;
+        }
+
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 100px;
+            gap: 15px;
+            padding: 12px 15px;
+            border-bottom: 1px solid #ecf0f1;
+            align-items: center;
+        }
+
+        .comparison-row:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .comparison-header {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .match-status {
+            text-align: center;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .match {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .differ {
+            background: #fdeaea;
+            color: #e74c3c;
+        }
+
+        .missing {
+            background: #fff3cd;
+            color: #f39c12;
+        }
+
+
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #ecf0f1;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error {
+            color: #e74c3c;
+            background: #fdeaea;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success {
+            color: #27ae60;
+            background: #d5f4e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .comparison-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-row {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚆 DB Produktdaten Vergleichstool</h1>
+            <p>Automatischer Vergleich von Siemens-Produktdaten zwischen Excel-Tabelle und MyMobase</p>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-section">
+                <div class="chat-header">
+                    💬 Chat-Interface
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot">
+                        <strong>🤖 DB-Assistent:</strong><br>
+                        Willkommen! Ich helfe Ihnen beim Vergleich von Siemens-Produktdaten.<br><br>
+                        <strong>Schritt 1:</strong> Bitte laden Sie zunächst Ihre Excel-Tabelle mit den DB-Produktdaten hoch.
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <div class="file-upload" id="fileUpload">
+                        <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;">
+                        <div id="fileUploadText">
+                            📁 Excel-Datei hier ablegen oder klicken zum Auswählen<br>
+                            <small>Unterstützte Formate: .xlsx, .xls</small>
+                        </div>
+                    </div>
+
+                    <div class="input-container">
+                        <input 
+                            type="text" 
+                            id="messageInput" 
+                            class="input-field" 
+                            placeholder="Herstellerartikelnummer eingeben (z.B. A2V123456)..."
+                            disabled
+                        >
+                        <button id="sendBtn" class="send-btn" disabled>
+                            Senden
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <div class="results-header">
+                    📊 Vergleichsergebnisse
+                </div>
+                
+                <div class="results-content" id="resultsContent">
+                    <div style="text-align: center; padding: 50px; color: #7f8c8d;">
+                        <h3>Bereit für Produktvergleich</h3>
+                        <p>Laden Sie eine Excel-Datei hoch und geben Sie eine Herstellerartikelnummer ein.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ProductComparisonTool {
+            constructor() {
+                this.excelData = null;
+                this.currentStep = 'upload';
+                this.initializeEventListeners();
+                this.setupFileUpload();
+            }
+
+            initializeEventListeners() {
+                const sendBtn = document.getElementById('sendBtn');
+                const messageInput = document.getElementById('messageInput');
+                
+                sendBtn.addEventListener('click', () => this.handleUserInput());
+                messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.handleUserInput();
+                });
+            }
+
+            setupFileUpload() {
+                const fileUpload = document.getElementById('fileUpload');
+                const fileInput = document.getElementById('excelFile');
+                
+                fileUpload.addEventListener('click', () => fileInput.click());
+                fileUpload.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    fileUpload.style.background = '#e3f2fd';
+                });
+                fileUpload.addEventListener('dragleave', () => {
+                    fileUpload.style.background = '';
+                });
+                fileUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    fileUpload.style.background = '';
+                    if (e.dataTransfer.files.length > 0) {
+                        this.handleFileUpload(e.dataTransfer.files[0]);
+                    }
+                });
+                
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleFileUpload(e.target.files[0]);
+                    }
+                });
+            }
+
+            addMessage(content, type = 'bot') {
+                const chatMessages = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                
+                if (type === 'bot') {
+                    messageDiv.innerHTML = `<strong>🤖 DB-Assistent:</strong><br>${content}`;
+                } else if (type === 'user') {
+                    messageDiv.innerHTML = `<strong>👤 Sie:</strong><br>${content}`;
+                } else {
+                    messageDiv.innerHTML = content;
+                }
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            addProgressMessage(message) {
+                const chatMessages = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message system';
+                messageDiv.innerHTML = `
+                    <div class="loading"></div>
+                    <span style="margin-left: 10px;">${message}</span>
+                `;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return messageDiv;
+            }
+
+            updateProgressMessage(messageElement, newContent, isComplete = false) {
+                if (isComplete) {
+                    messageElement.innerHTML = `✅ ${newContent}`;
+                    messageElement.style.background = '#d5f4e6';
+                } else {
+                    messageElement.innerHTML = `
+                        <div class="loading"></div>
+                        <span style="margin-left: 10px;">${newContent}</span>
+                    `;
+                }
+            }
+
+            async handleFileUpload(file) {
+                if (!file.name.match(/\.(xlsx|xls)$/)) {
+                    this.addMessage('❌ Bitte wählen Sie eine gültige Excel-Datei (.xlsx oder .xls)', 'system');
+                    return;
+                }
+
+                const progressMsg = this.addProgressMessage('Excel-Datei wird geladen...');
+
+                try {
+                    const data = await this.readExcelFile(file);
+                    this.excelData = data;
+                    
+                    this.updateProgressMessage(progressMsg, `Excel-Datei erfolgreich geladen (${data.length} Einträge)`, true);
+                    
+                    // Analysiere die Spaltenstruktur
+                    this.analyzeExcelStructure(data);
+                    
+                    // UI Update
+                    const fileUpload = document.getElementById('fileUpload');
+                    const fileUploadText = document.getElementById('fileUploadText');
+                    fileUpload.classList.add('has-file');
+                    fileUploadText.innerHTML = `✅ ${file.name}<br><small>${data.length} Produkte geladen</small>`;
+                    
+                    // Enable input
+                    document.getElementById('messageInput').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    
+                    this.currentStep = 'search';
+                    
+                } catch (error) {
+                    this.updateProgressMessage(progressMsg, 'Fehler beim Laden der Excel-Datei', true);
+                    this.addMessage(`❌ Fehler beim Laden der Excel-Datei: ${error.message}`, 'system');
+                }
+            }
+
+            analyzeExcelStructure(data) {
+                if (data.length === 0) return;
+
+                // Ermittle alle verfügbaren Spalten
+                const allColumns = new Set();
+                data.forEach(row => {
+                    Object.keys(row).forEach(key => allColumns.add(key));
+                });
+
+                this.availableColumns = Array.from(allColumns);
+                
+                // Finde wahrscheinliche Spalten für wichtige Felder
+                this.columnMapping = this.detectColumnMapping(this.availableColumns);
+                
+                // Debug-Informationen anzeigen
+                this.showColumnAnalysis();
+            }
+
+            detectColumnMapping(columns) {
+                const mapping = {};
+                
+                console.log('🔍 Analysiere Spalten:', columns);
+                
+                // Korrekte DB-Spaltennamen basierend auf der User-Excel-Struktur
+                columns.forEach(col => {
+                    if (!col) return; // Skip undefined/null columns
+                    
+                    const trimmedCol = col.toString().trim();
+                    const lowerCol = trimmedCol.toLowerCase();
+                    
+                    // Siemens Mobility Materialnummer
+                    if (trimmedCol === 'Siemens Mobility Materialnummer' ||
+                        lowerCol.includes('siemens mobility materialnummer')) {
+                        mapping.siemensMobilityNumber = col;
+                        console.log('✅ Siemens Mobility Materialnummer gefunden:', col);
+                    }
+                    
+                    // Materialkurztext (Spalte C)
+                    if (trimmedCol === 'Materialkurztext' || trimmedCol === 'MAKTX (DE)' || 
+                        lowerCol.includes('materialkurztext') || lowerCol.includes('material-kurztext')) {
+                        mapping.materialDescription = col;
+                        console.log('✅ Materialkurztext gefunden:', col);
+                    }
+                    
+                    // Herstellername (Spalte D)  
+                    if (trimmedCol === 'Herstellername' || lowerCol.includes('herstellername')) {
+                        mapping.manufacturer = col;
+                        console.log('✅ Herstellername gefunden:', col);
+                    }
+                    
+                    // Her.-Artikelnummer (Spalte E)
+                    if (trimmedCol === 'Her.-Artikelnummer' || 
+                        lowerCol.includes('her.-artikelnummer') || 
+                        lowerCol.includes('herstellerartikelnummer')) {
+                        mapping.manufacturerNumber = col;
+                        console.log('✅ Her.-Artikelnummer gefunden:', col);
+                    }
+                    
+                    // Länge (Spalte S)
+                    if (trimmedCol === 'Länge' || lowerCol === 'länge') {
+                        mapping.length = col;
+                        console.log('✅ Länge gefunden:', col);
+                    }
+                    
+                    // Breite (Spalte U)
+                    if (trimmedCol === 'Breite' || lowerCol === 'breite') {
+                        mapping.width = col;
+                        console.log('✅ Breite gefunden:', col);
+                    }
+                    
+                    // Höhe (Spalte V)
+                    if (trimmedCol === 'Höhe' || lowerCol === 'höhe') {
+                        mapping.height = col;
+                        console.log('✅ Höhe gefunden:', col);
+                    }
+                    
+                    // Bruttogewicht
+                    if (lowerCol.includes('bruttogewicht') || lowerCol.includes('brutto gewicht')) {
+                        mapping.grossWeight = col;
+                    }
+                    
+                    // Nettogewicht (Spalte N)
+                    if (trimmedCol === 'Nettogewicht' || lowerCol.includes('nettogewicht')) {
+                        mapping.netWeight = col;
+                        console.log('✅ Nettogewicht gefunden:', col);
+                    }
+                    
+                    // Werkstoff (Spalte P)
+                    if (trimmedCol === 'Werkstoff' || lowerCol === 'werkstoff') {
+                        mapping.material = col;
+                        console.log('✅ Werkstoff gefunden:', col);
+                    }
+                    
+                    // Fert./Prüfhinweis (Spalte P)
+                    if (trimmedCol === 'Fert./Prüfhinweis' || 
+                        lowerCol.includes('fert./prüfhinweis') ||
+                        lowerCol.includes('fertigungshinweis') ||
+                        lowerCol.includes('prüfhinweis')) {
+                        mapping.manufacturingNote = col;
+                        console.log('✅ Fert./Prüfhinweis gefunden:', col);
+                    }
+                    
+                    // Einheit für Abmasse
+                    if (lowerCol.includes('einheit') && lowerCol.includes('abmass')) {
+                        mapping.dimensionUnit = col;
+                    }
+                    
+                    // Einheit für Gewicht
+                    if (lowerCol.includes('einheit') && lowerCol.includes('gewicht')) {
+                        mapping.weightUnit = col;
+                    }
+                    
+                    // DB Materialnummer - MATNM 
+                    if (trimmedCol === 'MATNM') {
+                        mapping.materialNumber = col;
+                        console.log('✅ DB Materialnummer gefunden:', col);
+                    }
+                });
+
+                console.log('🎯 Erkannte Spalten-Zuordnung:', mapping);
+                return mapping;
+            }
+
+            showColumnAnalysis() {
+                let analysisMessage = `
+                    ✅ <strong>Excel-Datei analysiert!</strong><br><br>
+                    <strong>Geben Sie nun eine Herstellerartikelnummer ein (z.B. A2V00002057847).</strong>
+                `;
+
+                this.addMessage(analysisMessage);
+            }
+
+            async readExcelFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            
+                            // Erst mal alle Daten ohne Header lesen
+                            const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                            
+                            if (rawData.length < 4) {
+                                reject(new Error('Excel-Datei hat zu wenige Zeilen'));
+                                return;
+                            }
+                            
+                            // Die echten Spaltennamen stehen in Zeile 3 (Index 2)
+                            const headers = rawData[2];
+                            console.log('🔍 Erkannte Header (Zeile 3):', headers);
+                            
+                            // Datenzeilen beginnen ab Zeile 4 (Index 3)
+                            const dataRows = rawData.slice(3);
+                            
+                            // Konvertiere zu Objekt-Array mit den richtigen Headern
+                            const jsonData = dataRows.map(row => {
+                                const obj = {};
+                                headers.forEach((header, index) => {
+                                    if (header && header.trim() !== '') {
+                                        obj[header.trim()] = row[index] || '';
+                                    }
+                                });
+                                return obj;
+                            }).filter(obj => {
+                                // Filtere leere Zeilen heraus
+                                return Object.values(obj).some(value => value && value.toString().trim() !== '');
+                            });
+                            
+                            console.log('✅ Verarbeitete Daten:', jsonData.slice(0, 2)); // Erste 2 Zeilen als Beispiel
+                            resolve(jsonData);
+                            
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('Fehler beim Lesen der Datei'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            async handleUserInput() {
+                const input = document.getElementById('messageInput');
+                const query = input.value.trim();
+                
+                if (!query) return;
+                
+                if (this.currentStep !== 'search') {
+                    this.addMessage('Bitte laden Sie zunächst eine Excel-Datei hoch.', 'system');
+                    return;
+                }
+
+                this.addMessage(query, 'user');
+                input.value = '';
+
+                await this.processProductSearch(query);
+            }
+
+            async processProductSearch(articleNumber) {
+                // Schritt 1: Suche in Excel-Daten
+                const searchMsg = this.addProgressMessage('Suche in DB-Tabelle...');
+                
+                let excelProduct = null;
+                let searchStrategy = '';
+                let searchDetails = '';
+
+                // Erweiterte Suchlogik basierend auf automatisch erkannten Spalten
+                if (articleNumber.toUpperCase().startsWith('A2V')) {
+                    // Direkte Suche nach Herstellerartikelnummer
+                    searchStrategy = 'Direkte Suche (A2V-Nummer)';
+                    
+                    if (this.columnMapping.manufacturerNumber) {
+                        searchDetails = `in Spalte "${this.columnMapping.manufacturerNumber}"`;
+                        excelProduct = this.excelData.find(product => {
+                            const value = product[this.columnMapping.manufacturerNumber];
+                            return value && value.toString().toUpperCase().trim() === articleNumber.toUpperCase().trim();
+                        });
+                    }
+                    
+                    // Fallback: Suche in allen Spalten die ähnliche Namen haben
+                    if (!excelProduct) {
+                        searchDetails += ' + Fallback-Suche in ähnlichen Spalten';
+                        excelProduct = this.fuzzySearchInAllColumns(articleNumber, 'manufacturer');
+                    }
+                } else {
+                    // Suche über Siemens Mobility Materialnummer
+                    searchStrategy = 'Suche über Siemens Mobility Materialnummer';
+                    
+                    if (this.columnMapping.siemensMobilityNumber) {
+                        searchDetails = `in Spalte "${this.columnMapping.siemensMobilityNumber}"`;
+                        excelProduct = this.excelData.find(product => {
+                            const value = product[this.columnMapping.siemensMobilityNumber];
+                            return value && value.toString().toUpperCase().trim() === articleNumber.toUpperCase().trim();
+                        });
+                    }
+                    
+                    // Fallback: Suche in allen Spalten die ähnliche Namen haben
+                    if (!excelProduct) {
+                        searchDetails += ' + Fallback-Suche in ähnlichen Spalten';
+                        excelProduct = this.fuzzySearchInAllColumns(articleNumber, 'siemens');
+                    }
+                }
+
+                // Letzte Chance: Vollständige Suche in allen Spalten
+                if (!excelProduct) {
+                    searchDetails += ' + Vollsuche in allen Spalten';
+                    excelProduct = this.fuzzySearchInAllColumns(articleNumber, 'all');
+                }
+
+                if (excelProduct) {
+                    this.updateProgressMessage(searchMsg, `Produkt gefunden`, true);
+                } else {
+                    this.updateProgressMessage(searchMsg, `Produkt nicht gefunden`, true);
+                    this.showSearchDebugInfo(articleNumber, searchStrategy);
+                    return;
+                }
+
+                // Schritt 2: Echte Web-Suche über Backend-API
+                const webMsg = this.addProgressMessage('Suche auf MyMobase/SiemensMobility...');
+                
+                let webProduct;
+                try {
+                    // Bestimme die richtige A2V-Nummer für das Web-Scraping
+                    let webSearchNumber;
+                    
+                    if (articleNumber.toUpperCase().startsWith('A2V')) {
+                        // Direkte A2V-Nummer verwenden
+                        webSearchNumber = articleNumber;
+                    } else {
+                        // Siemens Mobility Materialnummer aus Excel-Daten holen (beginnt mit A2V)
+                        webSearchNumber = this.getExcelFieldValue(excelProduct, 'siemensMobilityNumber');
+                        if (!webSearchNumber || !webSearchNumber.toString().toUpperCase().startsWith('A2V')) {
+                            throw new Error('Keine gültige A2V-Nummer für Web-Scraping gefunden');
+                        }
+                    }
+                    
+                    console.log('🌐 Web-Scraping mit A2V-Nummer:', webSearchNumber);
+                    webProduct = await this.fetchWebData(webSearchNumber);
+                    this.updateProgressMessage(webMsg, 'Web-Daten erfolgreich abgerufen', true);
+                } catch (error) {
+                    console.error('Web-Scraping Fehler:', error);
+                    this.updateProgressMessage(webMsg, 'Web-Daten-Abruf fehlgeschlagen', true);
+                    webProduct = this.createFallbackWebData(excelProduct, error.message);
+                }
+
+                // Schritt 3: Vergleich und Darstellung
+                const compareMsg = this.addProgressMessage('Vergleiche Datensätze...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                this.updateProgressMessage(compareMsg, 'Vergleich abgeschlossen', true);
+                
+                this.addMessage(`
+                    ✅ <strong>Vergleich erfolgreich abgeschlossen!</strong><br><br>
+                    Die Ergebnisse werden rechts angezeigt:<br>
+                    • <strong>Links:</strong> Daten aus Ihrer Excel-Tabelle<br>
+                    • <strong>Rechts:</strong> Daten von der Webseite<br>
+                    • <strong>Unten:</strong> Detaillierter Vergleich mit markierten Unterschieden<br><br>
+                    💡 <strong>Möchten Sie eine andere Artikelnummer eingeben?</strong>
+                `);
+
+                this.displayComparison(excelProduct, webProduct, articleNumber);
+            }
+
+            fuzzySearchInAllColumns(articleNumber, searchType) {
+                const searchTerm = articleNumber.toUpperCase().trim();
+                
+                // Definiere relevante Spalten basierend auf Suchtyp und DB-Struktur
+                let columnsToSearch = [];
+                
+                if (searchType === 'manufacturer') {
+                    // Suche nach Herstellerartikelnummer (A2V-Nummern)
+                    columnsToSearch = this.availableColumns.filter(col => {
+                        const trimmedCol = col.trim();
+                        const lowerCol = col.toLowerCase();
+                        return trimmedCol === 'Z7ARTNUM' ||
+                               lowerCol.includes('herstellerartikelnummer') || 
+                               lowerCol.includes('her. artikelnummer') ||
+                               lowerCol.includes('artikel') || 
+                               lowerCol.includes('part');
+                    });
+                } else if (searchType === 'siemens') {
+                    // Suche nach Siemens Mobility Materialnummer
+                    columnsToSearch = this.availableColumns.filter(col => {
+                        const trimmedCol = col.trim();
+                        const lowerCol = col.toLowerCase();
+                        return trimmedCol === 'Siemens Mobility Materialnummer' ||
+                               lowerCol.includes('siemens') || 
+                               lowerCol.includes('mobility') ||
+                               lowerCol.includes('material');
+                    });
+                } else {
+                    // Suche in allen relevanten Spalten (nicht in Beschreibungen)
+                    columnsToSearch = this.availableColumns.filter(col => {
+                        const lowerCol = col.toLowerCase();
+                        return !lowerCol.includes('beschreibung') && 
+                               !lowerCol.includes('text') &&
+                               !lowerCol.includes('bezeichnung') &&
+                               !lowerCol.includes('maktx');
+                    });
+                }
+
+                console.log(`🔍 Suche "${searchTerm}" in Spalten:`, columnsToSearch);
+
+                // Exakte Suche
+                for (const product of this.excelData) {
+                    for (const column of columnsToSearch) {
+                        const value = product[column];
+                        if (value && value.toString().toUpperCase().trim() === searchTerm) {
+                            console.log(`✅ Gefunden in Spalte "${column}": ${value}`);
+                            return product;
+                        }
+                    }
+                }
+
+                // Erweiterte Suche: Teilstring-Matching (nur bei längeren Nummern > 5 Zeichen)
+                if (searchTerm.length > 5) {
+                    for (const product of this.excelData) {
+                        for (const column of columnsToSearch) {
+                            const value = product[column];
+                            if (value) {
+                                const valueStr = value.toString().toUpperCase().trim();
+                                if (valueStr.length > 5) {
+                                    // Suche sowohl vorwärts als auch rückwärts
+                                    if (valueStr.includes(searchTerm) || searchTerm.includes(valueStr)) {
+                                        console.log(`✅ Teilmatch in Spalte "${column}": ${value}`);
+                                        return product;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                console.log(`❌ Keine Treffer für "${searchTerm}"`);
+                return null;
+            }
+
+            showSearchDebugInfo(articleNumber, searchStrategy) {
+                let debugMessage = `
+                    ❌ <strong>Produkt nicht gefunden: "${articleNumber}"</strong><br><br>
+                    🔍 <strong>Durchgeführte Suchstrategie:</strong> ${searchStrategy}<br><br>
+                `;
+
+                // Zeige erkannte Spalten
+                if (this.columnMapping.manufacturerNumber) {
+                    debugMessage += `📊 <strong>Herstellerartikelnummer-Spalte:</strong> "${this.columnMapping.manufacturerNumber}"<br>`;
+                } else {
+                    debugMessage += `⚠️ <strong>Herstellerartikelnummer-Spalte:</strong> Nicht automatisch erkannt<br>`;
+                }
+
+                if (this.columnMapping.siemensMobilityNumber) {
+                    debugMessage += `📊 <strong>Siemens Mobility-Spalte:</strong> "${this.columnMapping.siemensMobilityNumber}"<br>`;
+                } else {
+                    debugMessage += `⚠️ <strong>Siemens Mobility-Spalte:</strong> Nicht automatisch erkannt<br>`;
+                }
+
+                // Zeige relevante Beispieldaten aus der DB-Tabelle
+                debugMessage += '<br>💡 <strong>Beispiele aus Ihrer DB-Tabelle (erste 3 Zeilen):</strong><br>';
+                debugMessage += '<small style="font-family: monospace; background: #f0f0f0; padding: 10px; border-radius: 5px; display: block; margin: 10px 0;">';
+
+                for (let i = 0; i < Math.min(3, this.excelData.length); i++) {
+                    const row = this.excelData[i];
+                    debugMessage += `<strong>Zeile ${i + 1}:</strong><br>`;
+                    
+                    // Zeige die wichtigsten DB-spezifischen Spalten (aktualisierte Namen)
+                    const relevantColumns = [
+                        'MATNM', 'MAKTX (DE)', 'ZZHERST', 'ZZARTNUM', 'Siemens Mobility Materialnummer', 'BRTGW', 'LAENG', 'BREIT', 'HOEHE', 'WRKST'
+                    ];
+                    
+                    relevantColumns.forEach(key => {
+                        const value = row[key];
+                        if (value !== undefined && value !== null && value !== '') {
+                            debugMessage += `  <strong>${key}:</strong> ${value}<br>`;
+                        }
+                    });
+                    
+                    // Zusätzlich alle anderen Spalten mit relevanten Keywords
+                    Object.keys(row).forEach(key => {
+                        const value = row[key];
+                        const lowerKey = key.toLowerCase();
+                        if (value && !relevantColumns.includes(key) && (
+                            lowerKey.includes('artikel') ||
+                            lowerKey.includes('siemens') ||
+                            lowerKey.includes('zzart') ||
+                            lowerKey.includes('mobility') ||
+                            (key.startsWith('ZZ') && key.length <= 8) // DB-SAP-Felder
+                        )) {
+                            debugMessage += `  <em>${key}:</em> ${value}<br>`;
+                        }
+                    });
+                    debugMessage += '<br>';
+                }
+
+                debugMessage += '</small>';
+
+                debugMessage += `
+                    <br><strong>💬 Lösungsvorschläge:</strong><br>
+                    1. Überprüfen Sie die Schreibweise der Artikelnummer<br>
+                    2. Prüfen Sie, ob die Nummer in einer anderen Spalte steht<br>
+                    3. Versuchen Sie eine andere Artikelnummer aus Ihrer Tabelle<br>
+                    4. Falls die Spaltenerkennung falsch ist, teilen Sie mir die korrekten Spaltennamen mit
+                `;
+
+                this.addMessage(debugMessage);
+            }
+
+            getFieldValue(product, possibleFields) {
+                // Erst die automatisch erkannten Spalten prüfen
+                if (this.columnMapping) {
+                    for (const field of possibleFields) {
+                        const mappedField = this.columnMapping[field];
+                        if (mappedField && product[mappedField] !== undefined && product[mappedField] !== null && product[mappedField] !== '') {
+                            return product[mappedField];
+                        }
+                    }
+                }
+                
+                // Dann die direkt angegebenen Felder prüfen
+                for (const field of possibleFields) {
+                    if (product[field] !== undefined && product[field] !== null && product[field] !== '') {
+                        return product[field];
+                    }
+                }
+                
+                return null;
+            }
+
+            getExcelFieldValue(product, fieldType) {
+                // Hilfsfunktion um DB-spezifische Felder zu holen
+                switch(fieldType) {
+                    case 'manufacturerNumber':
+                        return this.columnMapping?.manufacturerNumber ? product[this.columnMapping.manufacturerNumber] : null;
+                    case 'siemensMobilityNumber':
+                        return this.columnMapping?.siemensMobilityNumber ? product[this.columnMapping.siemensMobilityNumber] : null;
+                    case 'materialDescription':
+                        return this.columnMapping?.materialDescription ? product[this.columnMapping.materialDescription] : null;
+                    case 'manufacturer':
+                        return this.columnMapping?.manufacturer ? product[this.columnMapping.manufacturer] : null;
+                    case 'materialNumber':
+                        return this.columnMapping?.materialNumber ? product[this.columnMapping.materialNumber] : null;
+                    case 'length':
+                        return this.columnMapping?.length ? product[this.columnMapping.length] : null;
+                    case 'width':
+                        return this.columnMapping?.width ? product[this.columnMapping.width] : null;
+                    case 'height':
+                        return this.columnMapping?.height ? product[this.columnMapping.height] : null;
+                    case 'grossWeight':
+                        return this.columnMapping?.grossWeight ? product[this.columnMapping.grossWeight] : null;
+                    case 'netWeight':
+                        return this.columnMapping?.netWeight ? product[this.columnMapping.netWeight] : null;
+                    case 'material':
+                        return this.columnMapping?.material ? product[this.columnMapping.material] : null;
+                    case 'manufacturingNote':
+                        return this.columnMapping?.manufacturingNote ? product[this.columnMapping.manufacturingNote] : null;
+                    case 'dimensionUnit':
+                        return this.columnMapping?.dimensionUnit ? product[this.columnMapping.dimensionUnit] : null;
+                    case 'weightUnit':
+                        return this.columnMapping?.weightUnit ? product[this.columnMapping.weightUnit] : null;
+                    case 'dimensions':
+                        // Combined L×B×H format for comparison
+                        return this.combineExcelDimensions(product);
+                    case 'description': // Fallback für alte Felder
+                        return this.columnMapping?.materialDescription ? product[this.columnMapping.materialDescription] : null;
+                    default:
+                        return product[fieldType];
+                }
+            }
+
+            async fetchWebData(articleNumber) {
+                console.log(`🌐 Starte Web-Scraping für: ${articleNumber}`);
+                
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        articleNumber: articleNumber
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`HTTP ${response.status}: ${errorData.error || 'Unbekannter Fehler'}`);
+                }
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Scraping fehlgeschlagen');
+                }
+
+                const webData = result.data;
+                
+                // Konvertiere Scraping-Daten in unser Format
+                const webProduct = {
+                    'Produkttitel': webData.Produkttitel || 'Nicht gefunden',
+                    'Herstellerartikelnummer': webData.Herstellerartikelnummer || webData.Artikelnummer || articleNumber,
+                    'Produktbeschreibung': webData.Produktbeschreibung || 'Nicht verfügbar',
+                    'Gewicht': webData.Gewicht || 'Nicht spezifiziert',
+                    'Abmessung': webData.Abmessung || 'Nicht spezifiziert',
+                    'Länge': this.extractDimension(webData.Abmessung, 'L'),
+                    'Breite': this.extractDimension(webData.Abmessung, 'B'),
+                    'Höhe': this.extractDimension(webData.Abmessung, 'H'),
+                    'Werkstoff': webData.Werkstoff || 'Nicht gefunden',
+                    'Materialklassifizierung': webData.Materialklassifizierung || 'Nicht gefunden',
+                    'Weitere Artikelnummer': webData['Weitere Artikelnummer'] || 'Nicht verfügbar',
+                    'Statistische Warennummer': webData['Statistische Warennummer'] || 'Nicht gefunden',
+                    'URL': webData.URL || `https://www.mymobase.com/de/p/${articleNumber}`
+                };
+
+                console.log(`✅ Web-Scraping erfolgreich für: ${articleNumber}`);
+                return webProduct;
+            }
+
+            createFallbackWebData(excelProduct, errorMessage) {
+                // Bestimme die A2V-Nummer für die URL
+                const a2vNumber = this.getExcelFieldValue(excelProduct, 'siemensMobilityNumber') || 
+                                 this.getExcelFieldValue(excelProduct, 'manufacturerNumber') || 
+                                 'A2V-unbekannt';
+                
+                // Spezielle Behandlung für Browser-Installationsfehler
+                let statusMessage = `Fehler: ${errorMessage}`;
+                let hinweis = 'Web-Scraping fehlgeschlagen';
+                
+                if (errorMessage.includes('Browser konnte nicht installiert werden') || 
+                    errorMessage.includes("Executable doesn't exist") || 
+                    errorMessage.includes('playwright install')) {
+                    statusMessage = 'Browser-Installation erforderlich';
+                    hinweis = 'Der Server versucht die Browser automatisch zu installieren. Bitte warten Sie einen Moment und versuchen Sie es erneut.';
+                } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+                    statusMessage = 'Timeout beim Laden der Seite';
+                    hinweis = 'MyMobase-Server nicht erreichbar oder überlastet. Versuchen Sie es später erneut.';
+                } else if (errorMessage.includes('404') || errorMessage.includes('nicht gefunden')) {
+                    statusMessage = 'Produkt auf MyMobase nicht gefunden';
+                    hinweis = 'A2V-Nummer möglicherweise veraltet oder nicht verfügbar.';
+                } else if (errorMessage.includes('Wenig Daten gefunden')) {
+                    statusMessage = 'Unvollständige Datenextraktion';
+                    hinweis = 'Seite geladen, aber technische Daten konnten nicht vollständig extrahiert werden.';
+                }
+                
+                // Fallback-Daten wenn Scraping fehlschlägt
+                const webProduct = {
+                    'Herstellerartikelnummer': a2vNumber,
+                    'Produkttitel': 'Scraping fehlgeschlagen',
+                    'Weitere Artikelnummer': 'Nicht verfügbar',
+                    'Abmessung': 'Nicht verfügbar',
+                    'Gewicht': 'Nicht verfügbar',
+                    'Werkstoff': 'Nicht verfügbar',
+                    'Materialklassifizierung': 'Nicht verfügbar',
+                    'Statistische Warennummer': 'Nicht verfügbar',
+                    'URL': `https://www.mymobase.com/de/p/${a2vNumber}`,
+                    'Debug-Hinweis': `${statusMessage} - ${hinweis}`
+                };
+                
+                return webProduct;
+            }
+
+            extractDimension(dimensionString, type) {
+                if (!dimensionString || dimensionString === 'Nicht gefunden' || dimensionString === 'Nicht spezifiziert') {
+                    return 'Nicht verfügbar';
+                }
+
+                // Versuche L×B×H Format zu parsen
+                const lbhMatch = dimensionString.match(/L×B×H:\s*(\d+)×(\d+)×(\d+)/);
+                if (lbhMatch) {
+                    switch(type) {
+                        case 'L': return `${lbhMatch[1]} mm`;
+                        case 'B': return `${lbhMatch[2]} mm`;
+                        case 'H': return `${lbhMatch[3]} mm`;
+                    }
+                }
+
+                // Versuche andere Formate
+                const simpleMatch = dimensionString.match(/(\d+)×(\d+)×(\d+)/);
+                if (simpleMatch) {
+                    switch(type) {
+                        case 'L': return `${simpleMatch[1]} mm`;
+                        case 'B': return `${simpleMatch[2]} mm`;
+                        case 'H': return `${simpleMatch[3]} mm`;
+                    }
+                }
+
+                return 'Nicht extrahierbar';
+            }
+
+
+
+            displayComparison(excelProduct, webProduct, articleNumber) {
+                const resultsContent = document.getElementById('resultsContent');
+                
+                resultsContent.innerHTML = `
+                    <div style="margin-bottom: 20px;">
+                        <h3>🔍 Suchergebnis für: <span style="color: #2c3e50;">${articleNumber}</span></h3>
+                    </div>
+
+                    <div class="comparison-container">
+                        <div class="data-table excel-data">
+                            <div class="table-header">
+                                📊 Excel-Daten (Deutsche Bahn)
+                            </div>
+                            <div class="table-content">
+                                ${this.renderDataTable(excelProduct, 'excel')}
+                            </div>
+                        </div>
+
+                        <div class="data-table web-data">
+                            <div class="table-header">
+                                🌐 Web-Daten (MyMobase/SiemensMobility)
+                            </div>
+                            <div class="table-content">
+                                ${this.renderDataTable(webProduct, 'web')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comparison-table">
+                        <div class="table-header">
+                            ⚖️ Detaillierter Vergleich - DB vs. Web
+                        </div>
+                        <div class="table-content">
+                            ${this.renderComparisonTable(excelProduct, webProduct)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderDataTable(data, source) {
+                let html = '';
+                
+                if (source === 'excel') {
+                    // Excel-Daten in der gewünschten Reihenfolge
+                    const excelFields = [
+                        { key: 'siemensMobilityNumber', label: 'Siemens Mobility Materialnummer' },
+                        { key: 'materialDescription', label: 'Material-Kurztext' },
+                        { key: 'manufacturerNumber', label: 'Herstellerartikelnummer' },
+                        { key: 'length', label: 'Länge', addUnit: true },
+                        { key: 'width', label: 'Breite', addUnit: true },
+                        { key: 'height', label: 'Höhe', addUnit: true },
+                        { key: 'dimensionUnit', label: 'Einheit für Abmasse' },
+                        { key: 'grossWeight', label: 'Bruttogewicht' },
+                        { key: 'netWeight', label: 'Nettogewicht' },
+                        { key: 'weightUnit', label: 'Einheit für Gewicht' },
+                        { key: 'manufacturingNote', label: 'Fertigung und Prüfhinweis' },
+                        { key: 'material', label: 'Werkstoff' }
+                    ];
+
+                    excelFields.forEach(field => {
+                        const value = this.getExcelFieldValue(data, field.key);
+                        if (value && value !== '') {
+                            let displayValue = this.formatValue(value);
+                            
+                            // Füge Einheit für Abmessungen hinzu
+                            if (field.addUnit) {
+                                const unit = this.getExcelFieldValue(data, 'dimensionUnit') || 'mm';
+                                displayValue += ` ${unit}`;
+                            }
+                            
+                            html += `
+                                <div class="data-row">
+                                    <div class="data-label">${field.label}:</div>
+                                    <div class="data-value">${displayValue}</div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                } else {
+                    // Web-Daten in der gewünschten Reihenfolge
+                    const webFields = [
+                        { key: 'Herstellerartikelnummer', label: 'Siemens Mobility Materialnummer (A2V)' },
+                        { key: 'Produkttitel', label: 'Produktname' },
+                        { key: 'Weitere Artikelnummer', label: 'Weitere Artikelnummer' },
+                        { key: 'Abmessung', label: 'Abmessungen' },
+                        { key: 'Gewicht', label: 'Gewicht' },
+                        { key: 'Materialklassifizierung', label: 'Materialklassifizierung' },
+                        { key: 'Werkstoff', label: 'Werkstoff' },
+                        { key: 'Statistische Warennummer', label: 'Statistische Warennummer' },
+                        { key: 'URL', label: 'Produktlink', isLink: true }
+                    ];
+
+                    webFields.forEach(field => {
+                        const value = data[field.key] || 'Nicht gefunden';
+                        let displayValue = this.formatValue(value);
+                        
+                        // Special handling for links
+                        if (field.isLink && value && value !== 'Nicht gefunden') {
+                            displayValue = `<a href="${value}" target="_blank" class="product-link">🔗 Mehr Informationen</a>`;
+                        }
+                        
+                        // Special handling for material classification
+                        if (field.key === 'Materialklassifizierung' && data['Materialklassifizierung Bewertung'] && data['Materialklassifizierung Bewertung'] !== 'Nicht bewertet') {
+                            displayValue += `<br><small style="color: #666;">${data['Materialklassifizierung Bewertung']}</small>`;
+                        }
+                        
+                        html += `
+                            <div class="data-row">
+                                <div class="data-label">${field.label}:</div>
+                                <div class="data-value">${displayValue}</div>
+                            </div>
+                        `;
+                    });
+
+                    // Keine zusätzlichen Felder mehr anzeigen (Verfügbarkeit, Datenquelle, Scraping Status entfernt)
+                }
+
+                return html;
+            }
+
+            renderComparisonTable(excelData, webData) {
+                const comparisonFields = [
+                    { 
+                        excel: 'siemensMobilityNumber', 
+                        web: 'Herstellerartikelnummer', 
+                        label: 'Siemens Mobility Materialnummer',
+                        isDbField: true 
+                    },
+                    { 
+                        excel: 'materialDescription', 
+                        web: 'Produkttitel', 
+                        label: 'Material-Kurztext / Produktname',
+                        isDbField: true 
+                    },
+                    { 
+                        excel: 'netWeight', 
+                        web: 'Gewicht', 
+                        label: 'Gewicht',
+                        isDbField: true 
+                    },
+                    { 
+                        excel: 'dimensions', 
+                        web: 'Abmessung', 
+                        label: 'Abmessung',
+                        isDbField: true,
+                        isSpecialDimension: true
+                    },
+                    { 
+                        excel: 'material', 
+                        web: 'Werkstoff', 
+                        label: 'Werkstoff',
+                        isDbField: true 
+                    },
+                    { 
+                        excel: 'manufacturingNote', 
+                        web: 'Materialklassifizierung', 
+                        label: 'Fert./Prüfhinweis / Materialklassifizierung',
+                        isDbField: true,
+                        isMaterialClassification: true
+                    }
+                ];
+
+                let html = `
+                    <div class="comparison-row comparison-header">
+                        <div>Eigenschaft</div>
+                        <div>Excel-Wert (DB)</div>
+                        <div>Web-Wert (MyMobase)</div>
+                        <div>Bewertung</div>
+                    </div>
+                `;
+
+                comparisonFields.forEach(field => {
+                    let excelValue, webValue;
+                    
+                    if (field.isDbField) {
+                        // Verwende die DB-spezifische Feldabfrage
+                        excelValue = this.getExcelFieldValue(excelData, field.excel) || '-';
+                    } else {
+                        // Normale Feldabfrage
+                        excelValue = excelData[field.excel] || '-';
+                    }
+                    
+                    // Special handling for dimensions - combine Excel L×B×H format
+                    if (field.isSpecialDimension) {
+                        excelValue = this.combineExcelDimensions(excelData);
+                        webValue = webData[field.web] || 'Nicht gefunden';
+                    }
+                    // Special handling for material classification with intelligent conversion
+                    else if (field.isMaterialClassification) {
+                        webValue = webData[field.web] || 'Nicht gefunden';
+                        // Convert web classification to Excel format for comparison
+                        if (webValue.includes('Nicht Schweiss-/Guss/Klebe-/Schmiede relevant')) {
+                            webValue = 'OHNE/N/N/N/N';
+                        }
+                    }
+                    // Special handling for weight - remove unit for comparison
+                    else if (field.label === 'Gewicht') {
+                        webValue = webData[field.web] || 'Nicht gefunden';
+                        // Extract only the number without unit
+                        if (webValue !== 'Nicht gefunden') {
+                            const weightMatch = webValue.match(/(\d+[,.]?\d*)/);
+                            if (weightMatch) {
+                                webValue = weightMatch[1].replace(',', '.');
+                            }
+                        }
+                    }
+                    else {
+                        webValue = webData[field.web] || 'Nicht gefunden';
+                    }
+                    
+                    const comparison = this.compareValues(excelValue, webValue);
+
+                    html += `
+                        <div class="comparison-row">
+                            <div><strong>${field.label}</strong></div>
+                            <div>${this.formatValue(excelValue)}</div>
+                            <div>${this.formatValue(webValue)}</div>
+                            <div class="match-status ${comparison.status}">${comparison.text}</div>
+                        </div>
+                    `;
+                });
+
+                return html;
+            }
+
+            compareValues(value1, value2) {
+                // Behandlung fehlender Werte
+                if ((value1 === '-' || value1 === '' || value1 === 'Nicht gefunden' || value1 === 'Nicht verfügbar') && 
+                    (value2 === '-' || value2 === '' || value2 === 'Nicht gefunden' || value2 === 'Nicht verfügbar')) {
+                    return { status: 'missing', text: 'Beide fehlend' };
+                } else if (value1 === '-' || value1 === '' || value1 === 'Nicht gefunden' || value1 === 'Nicht verfügbar') {
+                    return { status: 'missing', text: 'Excel fehlend' };
+                } else if (value2 === '-' || value2 === '' || value2 === 'Nicht gefunden' || value2 === 'Nicht verfügbar') {
+                    return { status: 'missing', text: 'Web fehlend' };
+                } 
+                // Numerische Vergleiche (vereinfacht)
+                else if (this.isNumeric(value1) && this.isNumeric(value2)) {
+                    const num1 = parseFloat(value1.toString().replace(',', '.'));
+                    const num2 = parseFloat(value2.toString().replace(',', '.'));
+                    const diff = Math.abs(num1 - num2);
+                    const tolerance = Math.max(num1, num2) * 0.01; // 1% Toleranz
+                    
+                    if (diff <= tolerance) {
+                        return { status: 'match', text: 'Identisch' };
+                    } else {
+                        return { status: 'differ', text: 'Verschieden' };
+                    }
+                } 
+                // Text-Vergleiche (vereinfacht)
+                else {
+                    const str1 = value1.toString().toLowerCase().trim();
+                    const str2 = value2.toString().toLowerCase().trim();
+                    
+                    if (str1 === str2) {
+                        return { status: 'match', text: 'Identisch' };
+                    } else {
+                        return { status: 'differ', text: 'Verschieden' };
+                    }
+                }
+            }
+
+            isNumeric(value) {
+                return !isNaN(parseFloat(value)) && isFinite(value);
+            }
+
+            formatValue(value) {
+                if (value === null || value === undefined || value === '') {
+                    return '<em>Nicht verfügbar</em>';
+                }
+                
+                if (this.isNumeric(value)) {
+                    const num = parseFloat(value);
+                    return num % 1 === 0 ? num.toString() : num.toFixed(2);
+                }
+                
+                return value.toString();
+            }
+
+            // Parse dimensions from web data (e.g. "BT 3X30X107,3X228") into individual L/B/H
+            parseDimensions(dimensionString) {
+                if (!dimensionString || dimensionString === 'Nicht gefunden') {
+                    return { length: 'Nicht gefunden', width: 'Nicht gefunden', height: 'Nicht gefunden' };
+                }
+                
+                // Try to parse various dimension formats
+                const cleanDim = dimensionString.replace(/\s+/g, '').toUpperCase();
+                
+                // Pattern like "BT 3X30X107,3X228" or "107X30X3"
+                const match3D = cleanDim.match(/(\d+)[X×](\d+)[X×](\d+)/);
+                if (match3D) {
+                    return {
+                        length: match3D[1] + ' mm',
+                        width: match3D[2] + ' mm', 
+                        height: match3D[3] + ' mm'
+                    };
+                }
+                
+                // Pattern like "107X30" (2D)
+                const match2D = cleanDim.match(/(\d+)[X×](\d+)/);
+                if (match2D) {
+                    return {
+                        length: match2D[1] + ' mm',
+                        width: match2D[2] + ' mm',
+                        height: 'Nicht spezifiziert'
+                    };
+                }
+                
+                // If no pattern matches, return original string
+                return {
+                    length: dimensionString,
+                    width: 'Nicht spezifiziert',
+                    height: 'Nicht spezifiziert'
+                };
+            }
+
+            // Combine Excel dimensions (L×B×H) into web-like format for comparison
+            combineExcelDimensions(product) {
+                if (!this.columnMapping) return 'Nicht verfügbar';
+                
+                const length = this.columnMapping.length ? product[this.columnMapping.length] : null;
+                const width = this.columnMapping.width ? product[this.columnMapping.width] : null;
+                const height = this.columnMapping.height ? product[this.columnMapping.height] : null;
+                
+                // Create L×B×H format if all dimensions available
+                if (length && width && height) {
+                    return `${length}×${width}×${height}`;
+                }
+                
+                // Create L×B format if only 2D available
+                if (length && width) {
+                    return `${length}×${width}`;
+                }
+                
+                // Return individual values if available
+                if (length) return `L: ${length}`;
+                if (width) return `B: ${width}`;
+                if (height) return `H: ${height}`;
+                
+                return 'Nicht verfügbar';
+            }
+
+            // Convert web material classification to Excel format
+            convertMaterialClassification(webClassification) {
+                if (!webClassification || webClassification === 'Nicht gefunden') {
+                    return webClassification;
+                }
+                
+                const lower = webClassification.toLowerCase();
+                
+                // Standard case: "Nicht Schweiss-/Guss/Klebe-/Schmiede relevant" → "OHNE/N/N/N/N"
+                if (lower.includes('nicht schweiss') && 
+                    lower.includes('guss') && 
+                    lower.includes('klebe') && 
+                    lower.includes('schmiede')) {
+                    
+                    return `OHNE/N/N/N/N
+                    (Bedeutung: Keine Prüfklasse → OHNE, Kein Abnahmeprüfzeugnis → N, 
+                     Keine Schweiß-Zertifizierung → N, Keine STBP notwendig → N, 
+                     Keine Klebeverbindung relevant → N)`;
+                }
+                
+                // Partial matches
+                if (lower.includes('nicht schweiss')) {
+                    return 'N (Keine Schweiß-Zertifizierung)';
+                }
+                
+                // Return original if no conversion available
+                return webClassification;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new ProductComparisonTool();
+        });
+    </script>
+</body>
+</html>
