@@ -106,8 +106,8 @@ class SiemensProductScraper {
             console.log(`🔍 Lade Seite: ${url}`);
             
             const response = await page.goto(url, { 
-                waitUntil: 'networkidle', 
-                timeout: 30000 
+                waitUntil: 'domcontentloaded', 
+                timeout: 45000 
             });
 
             if (!response) {
@@ -124,7 +124,7 @@ class SiemensProductScraper {
             }
 
             // Wait for page to load
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(1000);
 
             // Extract page title
             try {
@@ -194,9 +194,14 @@ class SiemensProductScraper {
             await page.close();
             
         } catch (error) {
-            console.error('❌ Scraping Fehler:', error);
+            console.error('❌ Scraping Fehler:', error.message);
+            console.error('📋 Error stack:', error.stack);
+            console.error('🔧 Error type:', error.constructor.name);
+            console.error('🌐 URL war:', result.URL || 'unknown');
+            
             result.Status = `Fehler: ${error.message}`;
             result.Produkttitel = "Scraping fehlgeschlagen";
+            result.ErrorType = error.constructor.name;
         }
 
         return result;
