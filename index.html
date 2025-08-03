@@ -1161,15 +1161,23 @@
             async fetchWebData(articleNumber) {
                 console.log(`🌐 Starte Web-Scraping für: ${articleNumber}`);
                 
-                const response = await fetch('/api/scrape', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        articleNumber: articleNumber
-                    })
-                });
+                // Timeout für Render Cloud-Umgebung
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 Sekunden
+                
+                try {
+                    const response = await fetch('/api/scrape', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            articleNumber: articleNumber
+                        }),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
@@ -1203,6 +1211,14 @@
 
                 console.log(`✅ Web-Scraping erfolgreich für: ${articleNumber}`);
                 return webProduct;
+                
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    if (error.name === 'AbortError') {
+                        throw new Error('Web-Scraping Timeout nach 90 Sekunden');
+                    }
+                    throw error;
+                }
             }
 
             createFallbackWebData(excelProduct, errorMessage) {
