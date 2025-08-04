@@ -1,10 +1,10 @@
 # 🚆 DB Produktdaten Vergleichstool mit Web-Scraping
 
-Ein intelligentes Tool zur automatischen Analyse und zum Vergleich von Siemens-Produktdaten zwischen Deutsche Bahn Excel-Tabellen und MyMobase/SiemensMobility Website.
+Tool zur automatischen Analyse und zum Vergleich von Siemens-Produktdaten zwischen Deutsche Bahn Excel-Tabellen und MyMobase/SiemensMobility Website.
 
 ## ✨ Features
 
-- **📊 Excel-Analyse**: Automatische Erkennung der DB SAP-Spaltenstruktur (Zeile 3 Header)
+- **📊 Excel-Analyse**: Automatische Erkennung der DB SAP-Spaltenstruktur
 - **🔍 Intelligente Suche**: A2V-Nummern vs. Siemens Mobility Materialnummern
 - **🌐 Live Web-Scraping**: Echte Daten von MyMobase mit JavaScript-Extraktion
 - **⚖️ Intelligenter Vergleich**: Detaillierte Gegenüberstellung mit Abweichungsanalyse
@@ -70,7 +70,7 @@ Geben Sie eine Artikelnummer ein:
 - **Rechts**: Web-Daten (9 Felder mit Produktlink)
 - **Unten**: Intelligente Vergleichstabelle mit 6 Kern-Vergleichen
 
-## 📊 Intelligente Vergleichstabelle
+## 📊  Vergleichstabelle
 
 Die Vergleichstabelle zeigt die wichtigsten Unterschiede zwischen DB- und Web-Daten:
 
@@ -97,40 +97,6 @@ Bedeutung:
 • Keine Klebeverbindung relevant → N
 ```
 
-## 🔧 Erkannte DB-Felder
-
-Das Tool erkennt automatisch folgende SAP-Felder (Zeile 3 als Header):
-
-| Anzeigereihenfolge | Feld | Erkannte Spalten | Beschreibung |
-|---|---|---|---|
-| 1 | **Siemens Mobility Materialnummer** | `Siemens Mobility Materialnummer` | A2V-Nummer |
-| 2 | **Material-Kurztext** | `Materialkurztext`, `MAKTX (DE)` | Deutsche Produktbeschreibung |
-| 3 | **Herstellerartikelnummer** | `Her.-Artikelnummer`, `Z7ARTNUM` | Hersteller-Artikelnummer |
-| 4 | **Länge** | `Länge` (+ Einheit) | Längenmaß mit automatischer Einheit |
-| 5 | **Breite** | `Breite` (+ Einheit) | Breitenmaß mit automatischer Einheit |
-| 6 | **Höhe** | `Höhe` (+ Einheit) | Höhenmaß mit automatischer Einheit |
-| 7 | **Einheit für Abmasse** | `Einheit für Abmasse` | Maßeinheit (meist mm) |
-| 8 | **Bruttogewicht** | `Bruttogewicht` | Bruttogewicht mit Einheit |
-| 9 | **Nettogewicht** | `Nettogewicht` | Nettogewicht mit Einheit |
-| 10 | **Einheit für Gewicht** | `Einheit für Gewicht` | Gewichtseinheit (meist kg) |
-| 11 | **Fertigung und Prüfhinweis** | `Fert./Prüfhinweis` | Produktionshinweise |
-| 12 | **Werkstoff** | `Werkstoff` (Spalte P) | Materialspezifikation |
-
-## 🌐 Web-Scraping Details
-
-### Unterstützte Website
-- **MyMobase**: `https://www.mymobase.com/de/p/{artikelnummer}`
-
-### Extrahierte Web-Daten (in dieser Reihenfolge)
-1. **Siemens Mobility Materialnummer (A2V)** - Eindeutige Produktkennung
-2. **Produktname** - Offizielle Produktbezeichnung
-3. **Weitere Artikelnummer** - Alternative Herstellernummern
-4. **Abmessungen** - Maße im Format "BT 3X30X107,3X228"
-5. **Gewicht** - Produktgewicht mit Einheit
-6. **Materialklassifizierung** - Prüf- und Zertifizierungshinweise
-7. **Werkstoff** - Materialspezifikation (z.B. "X10CrNi18-8")
-8. **Statistische Warennummer** - Zollnummer für Export/Import
-9. **Produktlink** - Direkter Link zur MyMobase-Produktseite
 
 ### Fallback-Mechanismus
 Bei Scraping-Fehlern:
@@ -250,13 +216,6 @@ Server-Status prüfen.
    npx playwright install chromium --force
    ```
 
-## 📞 Support
-
-Bei Problemen oder Fragen:
-1. Prüfen Sie die Browser-Entwicklertools (F12)
-2. Kontrollieren Sie die Server-Logs
-3. Testen Sie mit bekannten Artikelnummern
-
 ## 🔄 Updates
 
 Für Updates des Tools:
@@ -265,7 +224,3 @@ git pull origin main
 npm install
 npm run install-browsers
 ```
-
----
-
-**Entwickelt für die Deutsche Bahn** - Optimiert für SAP-Produktdaten und Siemens-Komponenten.
