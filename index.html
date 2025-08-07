@@ -13,40 +13,37 @@
         }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-            color: #333;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }
 
         .header {
-            background: #dc0032;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: white;
             padding: 30px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 2.2em;
-            margin-bottom: 8px;
+            font-size: 2.5em;
+            margin-bottom: 10px;
             font-weight: 300;
-            letter-spacing: 0.5px;
         }
 
         .header p {
-            font-size: 1em;
+            font-size: 1.1em;
             opacity: 0.9;
-            font-weight: 300;
         }
 
         .main-content {
@@ -58,81 +55,81 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #e0e0e0;
+            border-right: 2px solid #ecf0f1;
         }
 
         .chat-header {
-            background: #333;
+            background: #3498db;
             color: white;
             padding: 20px;
-            font-size: 1.1em;
-            font-weight: 500;
+            font-size: 1.2em;
+            font-weight: bold;
         }
 
         .chat-messages {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            background: #fafafa;
+            background: #f8f9fa;
         }
 
         .message {
-            margin-bottom: 12px;
-            padding: 12px 16px;
-            border-radius: 6px;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
             max-width: 80%;
             animation: slideIn 0.3s ease-out;
         }
 
         .message.bot {
-            background: #f8f9fa;
-            border-left: 3px solid #dc0032;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
             margin-right: auto;
         }
 
         .message.user {
-            background: #ffebee;
-            border-left: 3px solid #666;
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
             margin-left: auto;
         }
 
         .message.system {
             background: #fff3e0;
+            border-left: 4px solid #ff9800;
             margin: 0 auto;
             text-align: center;
             font-style: italic;
         }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .input-section {
             padding: 20px;
             background: white;
-            border-top: 1px solid #e0e0e0;
+            border-top: 1px solid #ecf0f1;
         }
 
         .file-upload {
             margin-bottom: 15px;
-            padding: 20px;
-            border: 2px dashed #dc0032;
-            border-radius: 6px;
+            padding: 15px;
+            border: 2px dashed #3498db;
+            border-radius: 10px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: #fafafa;
         }
 
         .file-upload:hover {
-            background: #f5f5f5;
-            border-color: #b30026;
+            background: #f8f9fa;
+            border-color: #2980b9;
         }
 
         .file-upload.has-file {
             border-color: #27ae60;
-            background: #f0f8f0;
+            background: #d5f4e6;
         }
 
         .input-container {
@@ -142,36 +139,35 @@
 
         .input-field {
             flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 25px;
+            font-size: 16px;
             outline: none;
             transition: border-color 0.3s ease;
         }
 
         .input-field:focus {
-            border-color: #dc0032;
+            border-color: #3498db;
         }
 
         .send-btn {
-            padding: 12px 24px;
-            background: #dc0032;
+            padding: 15px 25px;
+            background: #3498db;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 25px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 16px;
             transition: background 0.3s ease;
         }
 
         .send-btn:hover {
-            background: #b30026;
+            background: #2980b9;
         }
 
         .send-btn:disabled {
-            background: #ccc;
+            background: #bdc3c7;
             cursor: not-allowed;
         }
 
@@ -179,15 +175,15 @@
             flex: 2;
             display: flex;
             flex-direction: column;
-            background: #fafafa;
+            background: #f8f9fa;
         }
 
         .results-header {
-            background: #333;
+            background: #27ae60;
             color: white;
             padding: 20px;
-            font-size: 1.1em;
-            font-weight: 500;
+            font-size: 1.2em;
+            font-weight: bold;
         }
 
         .results-content {
@@ -205,28 +201,27 @@
 
         .data-table {
             background: white;
-            border-radius: 6px;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .table-header {
-            padding: 16px;
-            font-weight: 600;
+            padding: 15px;
+            font-weight: bold;
             color: white;
-            font-size: 14px;
         }
 
         .excel-data .table-header {
-            background: #dc0032;
+            background: #e74c3c;
         }
 
         .web-data .table-header {
-            background: #333;
+            background: #9b59b6;
         }
 
         .table-content {
-            padding: 16px;
+            padding: 15px;
             max-height: 400px;
             overflow-y: auto;
         }
@@ -235,7 +230,7 @@
             display: flex;
             justify-content: space-between;
             padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #ecf0f1;
         }
 
         .data-row:last-child {
@@ -243,95 +238,91 @@
         }
 
         .data-label {
-            font-weight: 500;
-            color: #333;
+            font-weight: bold;
+            color: #2c3e50;
             flex: 1;
-            font-size: 13px;
         }
 
         .data-value {
             flex: 1;
             text-align: right;
-            font-size: 13px;
-            color: #666;
         }
 
         .product-link {
-            color: #dc0032;
+            color: #3498db;
             text-decoration: none;
-            padding: 4px 8px;
-            background: #f8f9fa;
-            border-radius: 3px;
+            padding: 5px 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
             display: inline-block;
-            font-size: 12px;
+            font-size: 0.9em;
             transition: all 0.3s ease;
         }
 
         .product-link:hover {
-            background: #dc0032;
+            background: #3498db;
             color: white;
         }
 
         .comparison-table {
             background: white;
-            border-radius: 6px;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .comparison-table .table-header {
-            background: #666;
+            background: #f39c12;
         }
 
         .comparison-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 100px;
             gap: 15px;
-            padding: 12px 16px;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 12px 15px;
+            border-bottom: 1px solid #ecf0f1;
             align-items: center;
         }
 
         .comparison-row:nth-child(even) {
-            background: #fafafa;
+            background: #f8f9fa;
         }
 
         .comparison-header {
-            font-weight: 600;
-            color: #333;
-            font-size: 13px;
+            font-weight: bold;
+            color: #2c3e50;
         }
 
         .match-status {
             text-align: center;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
         }
 
         .match {
-            background: #d4edda;
-            color: #155724;
+            background: #d5f4e6;
+            color: #27ae60;
         }
 
         .differ {
-            background: #f8d7da;
-            color: #721c24;
+            background: #fdeaea;
+            color: #e74c3c;
         }
 
         .missing {
             background: #fff3cd;
-            color: #856404;
+            color: #f39c12;
         }
 
         .loading {
             display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #f3f3f3;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
             border-radius: 50%;
-            border-top-color: #dc0032;
+            border-top-color: #3498db;
             animation: spin 1s ease-in-out infinite;
         }
 
@@ -1174,5 +1165,4 @@
     </script>
 </body>
 </html>
-
 
