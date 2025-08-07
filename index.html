@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -395,7 +394,7 @@
                             type="text" 
                             id="messageInput" 
                             class="input-field" 
-                            placeholder="Herstellerartikelnummer eingeben (z.B. A2V123456)..."
+                            placeholder="Artikelnummer eingeben (A2V-Nummer oder andere Nummer)..."
                             disabled
                         >
                         <button id="sendBtn" class="send-btn" disabled>
@@ -413,7 +412,7 @@
                 <div class="results-content" id="resultsContent">
                     <div style="text-align: center; padding: 50px; color: #7f8c8d;">
                         <h3>Bereit für Produktvergleich</h3>
-                        <p>Laden Sie eine Excel-Datei hoch und geben Sie eine Herstellerartikelnummer ein.</p>
+                        <p>Laden Sie eine Excel-Datei hoch und geben Sie eine Artikelnummer ein (A2V-Nummer oder andere Nummer).</p>
                     </div>
                 </div>
             </div>
@@ -557,7 +556,7 @@
                 // Finde wahrscheinliche Spalten für wichtige Felder
                 this.columnMapping = this.detectColumnMapping(this.availableColumns);
                 
-                this.addMessage('✅ Excel-Datei analysiert! Geben Sie nun eine Herstellerartikelnummer ein (z.B. A2V00001178020).');
+                this.addMessage('✅ Excel-Datei analysiert! Geben Sie nun eine Artikelnummer ein:\n• A2V-Nummern (z.B. A2V00001178020) - werden in "Siemens Mobility Materialnummer" gesucht\n• Andere Nummern - werden in "Her.-Artikelnummer" gesucht');
             }
 
             detectColumnMapping(columns) {
@@ -762,18 +761,18 @@
                 if (!this.excelData) return null;
 
                 if (articleNumber.toUpperCase().startsWith('A2V')) {
-                    // Suche nach Herstellerartikelnummer
-                    if (this.columnMapping.manufacturerNumber) {
+                    // A2V-Nummern werden in "Siemens Mobility Materialnummer" Spalte gesucht
+                    if (this.columnMapping.siemensMobilityNumber) {
                         return this.excelData.find(product => {
-                            const value = product[this.columnMapping.manufacturerNumber];
+                            const value = product[this.columnMapping.siemensMobilityNumber];
                             return value && value.toString().toUpperCase().trim() === articleNumber.toUpperCase().trim();
                         });
                     }
                 } else {
-                    // Suche nach Siemens Mobility Materialnummer
-                    if (this.columnMapping.siemensMobilityNumber) {
+                    // Nicht-A2V-Nummern werden in "Her.-Artikelnummer" Spalte gesucht
+                    if (this.columnMapping.manufacturerNumber) {
                         return this.excelData.find(product => {
-                            const value = product[this.columnMapping.siemensMobilityNumber];
+                            const value = product[this.columnMapping.manufacturerNumber];
                             return value && value.toString().toUpperCase().trim() === articleNumber.toUpperCase().trim();
                         });
                     }
@@ -1175,4 +1174,3 @@
     </script>
 </body>
 </html>
-
